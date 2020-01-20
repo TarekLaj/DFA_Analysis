@@ -11,7 +11,7 @@ fs=1000
 data_path='/media/ronin_cunningham/StorageDevice/Data sleep full night mat/'
 #data_path='/home/karim/projet_c1_c2_dreamer'
 file_to_load=os.path.join(data_path,'s{}_sleep.mat')
-save_path='/home/karim/projet_c1_c2_dreamer/cumulant_python/'
+save_path='/home/karim/DFA_Analysis/'
 if not os.path.exists(save_path):
     os.mkdir(save_path)
 sbj_list = np.array([k for k in range(1, 38)])
@@ -23,10 +23,13 @@ for sbj in sbj_list:
     del data
     n_elect,time,n_seg=segments.shape
     print(n_elect,time,n_seg)
+
     #signal=np.reshape(segments[1,:,1],(1,time))
     #print(signal.shape)
     # step0 : compute amplitude using hilbert transform
     amp=get_amplitude(signal=segments[1,:,1],fs=1000,plot=False)
+    print(save_path+'test_data.npy')
+    np.save(save_path+'test_data.npy',amp)
     # Step1: convert signal to like random walk signal
     #Rw_signal=like_random_walk(signal=amp,fs=1000,plot=False)
     # Step 2: compute beta DFA
