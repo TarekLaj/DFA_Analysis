@@ -34,7 +34,7 @@ for sbj in sbj_list:
     #Rw_signal=like_random_walk(signal=amp,fs=1000,plot=False)
     # Step 2: compute beta DFA
     scales=[2*fs,5*fs,10*fs, 20*fs, 30*fs]
-    qs=[-2, -1, 1 ,2]
+    qs=[-2, -1,0, 1 ,2]
     Fq,Hq,hq,tq,Dq=MDFA(amp,scales,qs)
     print(Fq,Hq,hq,tq,Dq)
     1/0

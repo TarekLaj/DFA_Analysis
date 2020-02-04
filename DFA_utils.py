@@ -3,7 +3,7 @@ import scipy.io as sio
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
-
+import math
 def get_data(filename):
     with h5py.File(filename, 'r') as f:
         contents= f['m_data'][:]
@@ -52,15 +52,12 @@ def like_rwalk(signal=[],fs=1000,plot=False):
     else:
         return randw
 
-
-def compRMS(X=[],scales=[],m=1,verbose=False):
-
+def compRMS(X=[],scales=[],m=1):
     t = np.arange(X.shape[0])
     step = scales[0]
     i0s = np.arange(0,X.shape[0],step)
     RMS = np.zeros((len(scales),i0s.shape[0]),'f8')
     for si,scale in enumerate(scales):
-        if verbose: print ('.')
         s2 = scale//2
         for j,i0 in enumerate(i0s-s2):
             i1 = i0 + scale
@@ -72,39 +69,68 @@ def compRMS(X=[],scales=[],m=1,verbose=False):
             fit = np.polyval(C,t0)
             RMS[si,j] = np.sqrt(((X[i0:i1]-fit)**2).mean())
     return RMS
-def compFq(rms,qs):
-    """Compute scaling function F as:
 
-      F[scale] = pow(mean(RMS[scale]^q),1.0/q)
-    This function computes F for all qs at each scale.
-    The result is a 2d NxM array (N = rms.shape[0], M = len(qs))
-    Parameters
-    ----------
-    rms:    the RMS 2d array (RMS for scales in rows) computer by compRMS or fastRMS
-    qs:     an array of q coefficients
-    """
-    Fq = np.zeros((rms.shape[0],len(qs)),'f8')
-    mRMS = np.ma.array(rms,mask=np.isnan(rms))
-    for qi in range(len(qs)):
-        p = qs[qi]
-        Fq[:,qi] = (mRMS**p).mean(1)**(1.0/p)
-    
-    Fq[:,qs==0] = np.exp(0.5*(np.log(mRMS**2.0)).mean(1))[:,None]
+
+def CompHurst(data=[],scales=[],m=1):
+
+    rRMS,F,Idx_sc_all=[],[],[]
+    for si,sc in enumerate(scales):
+        segments=math.floor(data.shape[0]/sc)
+        rms=[]
+        for v in range(segments):
+            idx_start=v*sc
+            idx_stop=v*sc+sc
+            idx_sc=np.arange(idx_start,idx_stop)
+            Idx_sc_all.append(idx_sc)
+            X_idx=data[idx_sc]
+            C=np.polyfit(idx_sc,X_idx,m)
+            fit=np.polyval(C,idx_sc)
+            sq=np.square(X_idx-fit).mean(axis=0)
+            rms.append(np.sqrt(sq))
+        rRMS.append(np.array(rms))
+        F.append(np.sqrt(np.square(rms).mean())) #over all hurst
+
+    Cx=np.polyfit(np.log2(scales),np.log2(F),m)
+    H=Cx[0]
+    Regline=np.polyval(Cx,np.log2(scales))
+    return H,Regline
+def ComputeFq(data=[],scales=[],qs=[],m=1):
+    rRMS,Idx_sc_all=[],[]
+    Fq = np.zeros((len(scales),len(qs)),'f8')
+    for si,sc in enumerate(scales):
+        segments=math.floor(data.shape[0]/sc)
+        rms=[]
+        for v in range(segments):
+            idx_start=v*sc
+            idx_stop=v*sc+sc
+            idx_sc=np.arange(idx_start,idx_stop)
+            Idx_sc_all.append(idx_sc)
+            X_idx=data[idx_sc]
+            C=np.polyfit(idx_sc,X_idx,m)
+            fit=np.polyval(C,idx_sc)
+            sq=np.square(X_idx-fit).mean(axis=0)
+            rms.append(np.sqrt(sq))
+        rRMS.append(np.array(rms))
+        for nqi,nq in enumerate(qs):
+            if nq!=0:
+                Fq[nqi,si] =(rRMS[si]**nq).mean()**(1/nq)
+            else:
+                Fq[nqi,si]=np.nan
+
+        Fq[np.asarray(qs)==0,si]=np.exp(0.5*(np.log(rRMS[si]**2.0)).mean(0))
     return Fq
+def MDFA1(data=[],scales=[],qs=[],m=1):
+    Fq=ComputeFq(data=data,scales=scales,qs=qs,m=1)
+    Hq=[]
+    for qi,q in enumerate(qs):
+        C1 = np.polyfit(np.log2(scales),np.log2(Fq[qi,:]),1)
+        Hq.append(C1[0])
+        
+        if abs(q - int(q)) > 0.1: continue
+    qs=np.asarray(qs)
+    Hq=np.asarray(Hq)
+    tq = Hq*qs - 1
+    hq = np.diff(tq)/(qs[1]-qs[0])
+    Dq = (qs[:-1]*hq) - tq[:-1]
 
-
-
-def MDFA(X,scales,qs):
-        RW = like_rwalk(X)
-        RMS = compRMS(RW,scales)
-        Fq = compFq(RMS,qs)
-        Hq = np.zeros(len(qs),'f8')
-        for qi,q in enumerate(qs):
-            C = polyfit(log2(scales),log2(Fq[:,qi]),1)
-            Hq[qi] = C[0]
-            if abs(q - int(q)) > 0.1: continue
-            loglog(scales,2**np.polyval(C,np.log2(scales)),lw=0.5,label='q=%d [H=%0.2f]'%(q,Hq[qi]))
-        tq = Hq*qs - 1
-        hq = np.diff(tq)/(qs[1]-qs[0])
-        Dq = (qs[:-1]*hq) - tq[:-1]
-        return Fq, Hq, hq, tq, Dq
+    return Fq, Hq, hq, tq, Dq
