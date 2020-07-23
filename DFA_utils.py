@@ -75,7 +75,8 @@ def CompHurst(data=[],scales=[],m=1):
 
     rRMS,F,Idx_sc_all=[],[],[]
     for si,sc in enumerate(scales):
-        segments=math.floor(data.shape[0]/sc)
+        segments=int(math.floor(data.shape[0]/sc))
+
         rms=[]
         for v in range(segments):
             idx_start=v*sc
@@ -98,7 +99,7 @@ def ComputeFq(data=[],scales=[],qs=[],m=1):
     rRMS,Idx_sc_all=[],[]
     Fq = np.zeros((len(scales),len(qs)),'f8')
     for si,sc in enumerate(scales):
-        segments=math.floor(data.shape[0]/sc)
+        segments=int(math.floor(data.shape[0]/sc))
         rms=[]
         for v in range(segments):
             idx_start=v*sc
@@ -125,7 +126,7 @@ def MDFA1(data=[],scales=[],qs=[],m=1):
     for qi,q in enumerate(qs):
         C1 = np.polyfit(np.log2(scales),np.log2(Fq[qi,:]),1)
         Hq.append(C1[0])
-        
+
         if abs(q - int(q)) > 0.1: continue
     qs=np.asarray(qs)
     Hq=np.asarray(Hq)

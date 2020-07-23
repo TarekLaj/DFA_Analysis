@@ -17,12 +17,12 @@ fs=1000
 data_path='/home/karim/DFA_Analysis/'
 #data_path='/home/karim/projet_c1_c2_dreamer'
 file_to_load=os.path.join(data_path,'test_data.npy')
-save_path='/home/karim/DFA_Analysis/DFA_values/'
-if not os.path.exists(save_path):
-    os.mkdir(save_path)
+# save_path='/home/karim/DFA_Analysis/DFA_values/'
+# if not os.path.exists(save_path):
+#     os.mkdir(save_path)
 
 #X=np.load(file_to_load)
-X=sio.loadmat('/home/karim/DFA_Analysis/packages/fractaldata.mat')['multifractal']
+X=sio.loadmat('/media/karim/DATAS/DFA_Analysis/fractaldata.mat')['multifractal']
 #data=np.cumsum(X-np.mean(X)).T
 
 scales=[16,32,64,128,256,512,1024]
@@ -36,7 +36,9 @@ qs=[-5,-3,-1,0,1,3,5]
 m=1
 
 data=like_rwalk(signal=X,fs=fs,plot=False)
+print(X.shape)
 H,reg=CompHurst(data=data,scales=scales,m=1)
+
 Fq,Hq,hq,tq,Dq=MDFA1(data=data,scales=scales,qs=qs,m=m)
 print('Hurst',H)
 print('Fq',Fq)
